@@ -1,0 +1,9 @@
+.git
+.github
+Dockerfile
+*.md
+tmp
+dist
+node_modules
+.env
+.secrets
