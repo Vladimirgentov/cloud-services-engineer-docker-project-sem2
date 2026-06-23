@@ -1,0 +1,74 @@
+name: momo-store
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        GO_VERSION: "1.22"
+    image: momo-store-backend:1.0.0
+    expose:
+      - "8081"
+    networks:
+      - app-net
+    volumes:
+      - backend-data:/app/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: "0.50"
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: "16"
+        VUE_APP_API_URL: "/api"
+    image: momo-store-frontend:1.0.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:8080"
+      - "8081:8081"
+    networks:
+      - app-net
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: "0.25"
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/momo-store/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  backend-data:
