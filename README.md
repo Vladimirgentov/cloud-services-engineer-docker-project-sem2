@@ -13,192 +13,193 @@
 
 ## Структура проекта
 
-```text
-.
-├── backend/
-│   ├── Dockerfile
-│   └── .dockerignore
-├── frontend/
-│   ├── Dockerfile
-│   └── .dockerignore
-├── docker-compose.yml
-├── .github/
-│   └── workflows/
-│       └── deploy.yaml
-└── README.md
-Требования
+- `backend/Dockerfile` — Dockerfile для backend;
+- `backend/.dockerignore` — исключения для backend-образа;
+- `frontend/Dockerfile` — Dockerfile для frontend;
+- `frontend/.dockerignore` — исключения для frontend-образа;
+- `docker-compose.yml` — описание сервисов Docker Compose;
+- `.github/workflows/deploy.yaml` — GitHub Actions workflow;
+- `README.md` — описание проекта.
+
+## Требования
 
 Для запуска нужны:
 
-Docker;
-Docker Compose;
-Git.
+- Docker;
+- Docker Compose;
+- Git.
 
 Проверка версий:
 
-docker version
-docker compose version
-git --version
-Быстрый запуск
+- `docker version`
+- `docker compose version`
+- `git --version`
+
+## Быстрый запуск
 
 Собрать и запустить приложение:
 
-docker compose up -d --build
+`docker compose up -d --build`
 
 Проверить состояние контейнеров:
 
-docker compose ps
+`docker compose ps`
 
 После запуска frontend доступен по адресам:
 
-http://localhost/
-http://localhost/momo-store/
+- `http://localhost/`
+- `http://localhost/momo-store/`
 
 Backend API доступен через nginx-прокси:
 
-http://localhost/api/products
-http://localhost:8081/products
+- `http://localhost/api/products`
+- `http://localhost:8081/products`
 
 Остановить приложение:
 
-docker compose down
+`docker compose down`
 
 Остановить приложение и удалить volume:
 
-docker compose down -v
-Docker Compose
+`docker compose down -v`
 
-В docker-compose.yml описаны два сервиса:
+## Docker Compose
 
-СервисНазначениеВнутренний портВнешний порт
-backendGo API8081не публикуется напрямую
-frontendnginx + Vue.js frontend + proxy до backend8080, 808180, 8081
+В `docker-compose.yml` описаны два сервиса:
 
-Backend внутри Docker-сети доступен по имени:
+| Сервис | Назначение | Внутренний порт | Внешний порт |
+|---|---|---:|---:|
+| `backend` | Go API | 8081 | не публикуется напрямую |
+| `frontend` | nginx + Vue.js frontend + proxy до backend | 8080, 8081 | 80, 8081 |
 
-backend:8081
+Backend внутри Docker-сети доступен по имени `backend:8081`.
 
-Frontend публикует наружу:
+Frontend публикует наружу порты:
 
-80:8080
-8081:8081
-Backend Dockerfile
+- `80:8080`
+- `8081:8081`
+
+## Backend Dockerfile
 
 Для backend используется multi-stage build.
 
 Первый stage:
 
-базовый образ golang:1.22-alpine;
-скачивание Go-зависимостей;
-сборка приложения из ./cmd/api;
-сборка статического бинарного файла с CGO_ENABLED=0.
+- базовый образ `golang:1.22-alpine`;
+- скачивание Go-зависимостей;
+- сборка приложения из `./cmd/api`;
+- сборка статического бинарного файла с `CGO_ENABLED=0`.
 
 Финальный stage:
 
-базовый образ alpine:3.20;
-копируется только собранный бинарный файл;
-добавляется непривилегированный пользователь app;
-приложение запускается не от root;
-открыт порт 8081;
-настроен HEALTHCHECK.
-Frontend Dockerfile
+- базовый образ `alpine:3.20`;
+- копируется только собранный бинарный файл;
+- добавляется непривилегированный пользователь `app`;
+- приложение запускается не от root;
+- открыт порт `8081`;
+- настроен `HEALTHCHECK`.
+
+## Frontend Dockerfile
 
 Для frontend также используется multi-stage build.
 
 Первый stage:
 
-базовый образ node:16-alpine;
-установка зависимостей через npm ci;
-сборка production-версии frontend.
+- базовый образ `node:16-alpine`;
+- установка зависимостей через `npm ci`;
+- сборка production-версии frontend.
 
 Финальный stage:
 
-базовый образ nginxinc/nginx-unprivileged:1.27-alpine;
-копируются только статические файлы из dist;
-nginx запускается не от root;
-frontend отдаётся по пути /momo-store/;
-nginx проксирует запросы /api/ на backend;
-настроен HEALTHCHECK.
-Безопасность контейнеров
+- базовый образ `nginxinc/nginx-unprivileged:1.27-alpine`;
+- копируются только статические файлы из `dist`;
+- nginx запускается не от root;
+- frontend отдаётся по пути `/momo-store/`;
+- nginx проксирует запросы `/api/` на backend;
+- настроен `HEALTHCHECK`.
+
+## Безопасность контейнеров
 
 В проекте реализованы следующие меры:
 
-контейнеры запускаются не от root;
-включён cap_drop: ALL;
-включён security_opt: no-new-privileges:true;
-включён read_only: true;
-временные директории вынесены в tmpfs;
-заданы лимиты CPU и памяти;
-секреты не хранятся в Dockerfile и Docker-образах.
-Проверка работы
+- контейнеры запускаются не от root;
+- включён `cap_drop: ALL`;
+- включён `security_opt: no-new-privileges:true`;
+- включён `read_only: true`;
+- временные директории вынесены в `tmpfs`;
+- заданы лимиты CPU и памяти;
+- секреты не хранятся в Dockerfile и Docker-образах.
+
+## Проверка работы
 
 Проверить итоговую Compose-конфигурацию:
 
-docker compose config
+`docker compose config`
 
 Собрать образы:
 
-docker compose build
+`docker compose build`
 
 Запустить приложение:
 
-docker compose up -d
+`docker compose up -d`
 
 Проверить frontend:
 
-curl -I http://localhost/momo-store/
+`curl -I http://localhost/momo-store/`
 
 Проверить backend через nginx-прокси:
 
-curl http://localhost/api/products
+`curl http://localhost/api/products`
 
 Проверить backend через опубликованный порт:
 
-curl http://localhost:8081/products
-Масштабирование backend
+`curl http://localhost:8081/products`
 
-Backend можно масштабировать, так как у него нет фиксированного container_name и он не публикует порт напрямую на host machine.
+## Масштабирование backend
 
-Пример запуска трёх экземпляров backend:
+Backend можно масштабировать, так как у него нет фиксированного `container_name` и он не публикует порт напрямую на host machine.
 
-docker compose up -d --scale backend=3
+Запуск трёх экземпляров backend:
 
-Вернуть один экземпляр:
+`docker compose up -d --scale backend=3`
 
-docker compose up -d --scale backend=1
-CI/CD
+Возврат к одному экземпляру:
 
-Workflow находится в файле:
+`docker compose up -d --scale backend=1`
 
-.github/workflows/deploy.yaml
+## CI/CD
+
+Workflow находится в файле `.github/workflows/deploy.yaml`.
 
 Pipeline запускается при push в ветки:
 
-main;
-docker-project.
+- `main`;
+- `docker-project`.
 
 Основные этапы pipeline:
 
-checkout репозитория;
-проверка наличия основных файлов;
-проверка docker compose config;
-сборка образов через Docker Compose;
-сканирование backend-образа через Trivy;
-сканирование frontend-образа через Trivy.
-Итог
+1. checkout репозитория;
+2. проверка наличия основных файлов;
+3. проверка `docker compose config`;
+4. сборка образов через Docker Compose;
+5. сканирование backend-образа через Trivy;
+6. сканирование frontend-образа через Trivy.
+
+## Итог
 
 В проекте реализованы:
 
-Dockerfile для backend;
-Dockerfile для frontend;
-multi-stage builds;
-Docker Compose конфигурация;
-внутренняя Docker-сеть;
-volume для backend;
-healthchecks;
-restart policy;
-ограничения ресурсов;
-запуск контейнеров не от root;
-read-only filesystem;
-ограничение capabilities;
-Trivy security scan в GitHub Actions.
+- Dockerfile для backend;
+- Dockerfile для frontend;
+- multi-stage builds;
+- Docker Compose конфигурация;
+- внутренняя Docker-сеть;
+- volume для backend;
+- healthchecks;
+- restart policy;
+- ограничения ресурсов;
+- запуск контейнеров не от root;
+- read-only filesystem;
+- ограничение capabilities;
+- Trivy security scan в GitHub Actions.
