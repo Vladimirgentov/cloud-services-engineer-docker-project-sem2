@@ -158,7 +158,21 @@ Frontend публикует наружу порты:
 
 ## Масштабирование backend
 
-Backend можно масштабировать, так как у него нет фиксированного `container_name` и он не публикует порт напрямую на host machine.
+Backend можно масштабировать, так как сервис не использует фиксированный `container_name` и не публикует порт напрямую на host machine.
+
+Frontend работает как nginx reverse proxy. Для динамического обновления адресов backend-реплик используется встроенный Docker DNS resolver:
+
+`resolver 127.0.0.11 valid=30s ipv6=off;`
+
+Backend upstream задан через переменную:
+
+`set $backend_upstream backend:8081;`
+
+В `proxy_pass` используется переменная:
+
+`proxy_pass http://$backend_upstream;`
+
+Так nginx периодически заново резолвит имя сервиса `backend` внутри Docker-сети. После изменения количества backend-реплик список адресов обновляется без пересборки образа.
 
 Запуск трёх экземпляров backend:
 

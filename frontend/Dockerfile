@@ -26,6 +26,9 @@ server {
     server_name _;
     absolute_redirect off;
 
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    set $backend_upstream backend:8081;
+
     root /usr/share/nginx/html;
     index index.html;
 
@@ -38,7 +41,8 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://backend:8081/;
+        rewrite ^/api/(.*)$ /$1 break;
+        proxy_pass http://$backend_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -50,8 +54,11 @@ server {
     listen 8081;
     server_name _;
 
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    set $backend_upstream backend:8081;
+
     location / {
-        proxy_pass http://backend:8081;
+        proxy_pass http://$backend_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
